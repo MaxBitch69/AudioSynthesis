@@ -32,7 +32,7 @@ for K = 1:range
     s = Synthesis(N, delta_e, f_e, a_e, phi_e);
 
     % Computes error
-    error(K, 1) = 1/norm(x-s);
+    error(K, 1) = 1/(norm(x-s).^2);
 end
 
 if display

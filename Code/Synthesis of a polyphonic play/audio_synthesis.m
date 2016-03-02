@@ -17,7 +17,7 @@ title('Real sound');
 %% HR Method on real sound x 
 % Parameters
 N = 2000; % Length of signal excerpted - Analysis window length
-K = 200; % Signal space dimension
+K = 66; % Signal space dimension
 n = 1024; % Full space dimension (signal + noise)
          % Noise space dimension = n-K
 l = N-n+1; % N = n+l-1, l completes n to get N
@@ -30,7 +30,7 @@ x = x(50000:50000+N); % Start at sample 100000
 [a_e, phi_e] = LeastSquares(x, delta_e, f_e);
 
 %% Re-synthesis of the signal
-length = 50*N; % durée plus longue pour mettre en évidence les résonances
+length = 15*N; % durée plus longue pour mettre en évidence les résonances
 s = Synthesis(length, delta_e, f_e, a_e, phi_e);
 
 % Display results
