@@ -1,6 +1,7 @@
 function y = pitchshift(x, shift)
-%UNTITLED5 Summary of this function goes here
-%   Detailed explanation goes here
+% Pitch shifting with STFT of signal x using percentage shift
+% Does a time stretching first of x, then resample it to obtain the 
+% right note.
 
 y = timestretch(x, shift);
 
@@ -8,6 +9,8 @@ y = timestretch(x, shift);
                      % p = numerator
                      % q = denominator
 
+
 y = resample(y, q, p);
+
 end
 

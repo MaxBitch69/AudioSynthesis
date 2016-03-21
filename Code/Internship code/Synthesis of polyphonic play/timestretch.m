@@ -1,6 +1,6 @@
 function y = timestretch(x, stretch)
-%UNTITLED3 Summary of this function goes here
-%   Detailed explanation goes here
+% Time stretching using STFT of signal x, using stretching percentage
+% "stretch".
 
 %% Parameters
 N = length(x); % Signal's duration
