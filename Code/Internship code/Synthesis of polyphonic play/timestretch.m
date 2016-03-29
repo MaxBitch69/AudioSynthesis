@@ -65,5 +65,7 @@ for k=2:Nt;  % Loop on timeframes
     y(deb:fin)=y(deb:fin)+ys; % overlap add
 end
 
+y = y(1:floor(N*stretch)); % Resizing of vector
+
 end
 
