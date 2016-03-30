@@ -1,4 +1,4 @@
-function [y, y_test] = test2(x, Fs, pitchs)
+function [y, y_test, timeDifference] = test2(x, Fs, pitchs)
 % Time stretching using STFT of signal x, using stretching percentage
 % "stretch".
 %
@@ -6,9 +6,9 @@ function [y, y_test] = test2(x, Fs, pitchs)
 
 %% Parameters
 N = length(x); % Signal's duration
-Nw = 0.7*Fs;%0.5*Fs; % Excerpts of signals
+Nw = 1*Fs;%0.5*Fs; % Excerpts of signals
 
-overlap = 0.25; %0.25; % overlap in %, here 0%
+overlap = 0.25; %0.25; % overlap in %, here 75%
 I = floor(Nw*overlap); % Hop size in points
 
 Nt = floor((N-Nw)/I); % Trames/FFT number
@@ -19,7 +19,7 @@ y_test = zeros(N, numberShiftings);
 
 % Metropolis-Hastings sampling
 mu = 0; % Mean for normal distribution
-sigma = 100; % standard deviation in ms
+sigma = 40; % standard deviation in ms
 
 %% Windowing
 w = hanning(Nw); % Analysis window

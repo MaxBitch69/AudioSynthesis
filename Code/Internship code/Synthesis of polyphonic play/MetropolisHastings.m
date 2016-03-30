@@ -12,6 +12,12 @@ for k = 1:N-1
     y = normrnd(mu, sigma); % Pick a random number following normal distribution
 
     alpha = min( exp(-1/2*(y-mu).^2) / exp(-1/2*(x-mu).^2), 1); % Probability to go from x to y
+
+%     if exp(-1/2*(x-mu).^2) > 0
+%         alpha = min( exp(-1/2*(y-mu).^2) / exp(-1/2*(x-mu).^2), 1); % Probability to go from x to y
+%     else
+%         alpha = 1;
+%     end
     u = normrnd(0, 1); % value to compare to alpha
 
     if u < alpha
