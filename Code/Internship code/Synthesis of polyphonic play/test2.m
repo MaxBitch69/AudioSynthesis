@@ -39,6 +39,12 @@ for k = 1:numberShiftings
     timeDifference(k,:) = MetropolisHastings(mu, sigma, Nt);
 end
     
+%% Metro - Hastings for amplitude modulation
+amplitudeModulation = zeros(numberShiftings, Nt); % Time Difference
+for k = 1:numberShiftings
+    amplitudeModulation(k,:) = abs(MetropolisHastings(1, 0.5, Nt)); % Amplitude
+end
+
 %% STFT
 for k=2:Nt-1;  % Loop on timeframes
     % Analysis
@@ -62,6 +68,10 @@ for k=2:Nt-1;  % Loop on timeframes
         % Time Stretching
         ys = timestretch(ttx, (fin-deb+1)/length(ttx));
         ys = [ys; zeros(fin-deb+1-length(ys),1)]; % Correcting mistakes led by floor()
+        
+        % Amplitude modulation
+        factorAmp = amplitudeModulation(h, k)/sum(amplitudeModulation(:,k)); % Normalisation
+        ys = factorAmp*ys;
         
         % Synthèse
         % Reconstruction
