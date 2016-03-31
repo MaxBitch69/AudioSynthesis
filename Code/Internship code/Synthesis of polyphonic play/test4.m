@@ -1,4 +1,4 @@
-function [y, y_test, pitchs] = test4(x, Fs, nbViolins)
+function [y, y_test] = test4(x, Fs, nbViolins)
 % Time stretching using STFT of signal x, using stretching percentage
 % "stretch".
 %
@@ -76,8 +76,12 @@ Xtilde_m(:,1) = fft(x(1:Nw), Nfft); % 1st fft
 phase = angle(Xtilde_m(:,1));
 former_phase = phase;
 
-for k=2:Nt-1;  % Loop on timeframes
-    % Analysis
+for k=2:Nt-1  % Loop on timeframes
+    % Display progression
+    str = sprintf('Treatment progression: %.1f %%', 100*k/Nt);
+    disp(str);
+    
+    %%% ANALYSIS
     deb = (k-1)*I +1; % Beginning - x(n+kI)
     fin = deb + Nw -1; % End
     tx = x(deb:fin).*w; % Timeframe
@@ -92,12 +96,8 @@ for k=2:Nt-1;  % Loop on timeframes
         % FFT
         X = fft(tx,Nfft); 
 
-        % Time Difference
-        deb = deb + floor(timeDifference(h, k)*10^-3*Fs);
-        fin = fin + floor(timeDifference(h, k+1)*10^-3*Fs);    
-
         % Time stretching
-        stretch = (fin-deb+1)/length(ttx);
+        stretch = Nw/length(ttx);
         diff_phase = (angle(X) - former_phase) - puls;
         diff_phase = mod(diff_phase + pi,-2*pi) + pi;
         diff_phase = (diff_phase + puls) * stretch;
@@ -106,35 +106,22 @@ for k=2:Nt-1;  % Loop on timeframes
         Y = abs(X).*exp(1i*phase);
         former_phase = angle(X);
         
-    % Synthèse
-    deb = (k-1)*R +1; % début de trame - on écarte les instants de synthèse
-    fin = deb + Nw -1; % fin de trame
-    
-    % Reconstruction
-    ys = real(ifft(Y, 'symmetric')); % TFD inverse
-    ys = ys.*ws; % pondération par la fenêtre de synthèse
-    
-            
+        %%% SYNTHESIS
+        % Time Difference
+        deb = deb + floor(timeDifference(h, k)*10^-3*Fs);
+        fin = deb + Nw -1; % fin de trame
+
+        % Reconstruction
+        ys = real(ifft(Y, 'symmetric')); % TFD inverse
+        ys = ys.*ws; % pondération par la fenêtre de synthèse
+        
         % Amplitude modulation
         factorAmp = amplitudeModulation(h, k)/sum(amplitudeModulation(:,k)); % Normalisation
         ys = factorAmp.*ys;
         
-    
-    y(deb:fin)=y(deb:fin)+ys; % overlap add
-end
-
-        
-        % Synthèse
-        % Reconstruction
-        ws = hanning(fin-deb+1); % Synthesis window
-        ys = ys.*ws; % pondération par la fenêtre de synthèse
         y_test(deb:fin, h) = y_test(deb:fin, h) + ys; % Each signal - y_test: stereo 
                                                       % if 2 pitchs: soundsc(y_test, Fs)
         y(deb:fin)=y(deb:fin)+ys; % overlap add - sum of signals
     end
 end
-
-%y = x + mean(abs(x))/mean(abs(y))*y; % Add original signal 
-
 end
-
