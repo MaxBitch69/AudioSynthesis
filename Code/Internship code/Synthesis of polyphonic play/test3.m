@@ -1,4 +1,4 @@
-function [y, y_test] = test3(x, Fs, nbViolins)
+function [y, y_test, pitchs] = test3(x, Fs, nbViolins)
 % Time stretching using STFT of signal x, using stretching percentage
 % "stretch".
 %
@@ -6,9 +6,9 @@ function [y, y_test] = test3(x, Fs, nbViolins)
 
 %% Parameters
 N = length(x); % Signal's duration
-Nw = 0.5*Fs; %0.5*Fs; % Excerpts of signal, here 1s
+Nw = floor(2*Fs/1024)*1024; %0.5*Fs; % Excerpts of signal, here 1s
 
-overlap = 0.125; %0.25; % overlap in %, here 75%
+overlap = 0.25; %0.25; % overlap in %, here 75%
 I = floor(Nw*overlap); % Hop size in points
 
 Nt = floor((N-Nw)/I); % Trames/FFT number
@@ -18,7 +18,7 @@ y_test = zeros(N, nbViolins);
 
 % Metropolis-Hastings sampling
 mu = 0; % Mean for normal distribution
-sigma = 40; % standard deviation in ms
+sigma = 45; % standard deviation in ms
 
 %% Windowing
 w = hanning(Nw); % Analysis window
@@ -33,12 +33,18 @@ amp = max(output);
 w = w./amp; 
 
 %% Compute Pitchs
-pitchs = zeros(nbViolins, Nt);
+% pitchs = zeros(nbViolins, Nt);
+% for k = 1:nbViolins
+%     for h = 1:Nt
+%         % Pick a random number following normal distribution
+%         pitchs(k, h) = normrnd(1, 0.05); % 10% modification
+%     end
+% end
+
+pitchs = zeros(nbViolins, 1);
 for k = 1:nbViolins
-    for h = 1:Nt
         % Pick a random number following normal distribution
-        pitchs(k, h) = normrnd(1, 0.05); % 10% modification
-    end
+        pitchs(k) = normrnd(1, 0.01); % 1% modification
 end
 
 %% Metropolis - Hastings - Compute Time Difference
@@ -56,7 +62,7 @@ end
 %% Metro - Hastings for amplitude modulation
 amplitudeModulation = zeros(nbViolins, Nt); % Time Difference
 for k = 1:nbViolins
-    amplitudeModulation(k,:) = abs(MetropolisHastings(1, 0.5, Nt)); % Amplitude
+    amplitudeModulation(k,:) = abs(MetropolisHastings(1, 0.4, Nt)); % Amplitude
 end
 
 %% STFT
@@ -74,7 +80,8 @@ for k=2:Nt-1;  % Loop on timeframes
     for h = 1:nbViolins
         
         % Pitch shifting
-        [p, q] = rat(pitchs(h, k), 1e-4); % rat(pitchs(h, k)); % Get fraction
+        [p, q] = rat(pitchs(h)); % Get fraction
+%        [p, q] = rat(pitchs(h, k), 1e-4); % rat(pitchs(h, k)); % Get fraction
         ttx = resample(tx, q, p); % New time base vector - p/q, p/q times smaller
         
         % Time Difference
@@ -87,7 +94,7 @@ for k=2:Nt-1;  % Loop on timeframes
         
         % Amplitude modulation
         factorAmp = amplitudeModulation(h, k)/sum(amplitudeModulation(:,k)); % Normalisation
-        ys = factorAmp*ys;
+        ys = factorAmp.*ys;
         
         % Synthèse
         % Reconstruction
@@ -98,6 +105,8 @@ for k=2:Nt-1;  % Loop on timeframes
         y(deb:fin)=y(deb:fin)+ys; % overlap add - sum of signals
     end
 end
+
+%y = x + mean(abs(x))/mean(abs(y))*y; % Add original signal 
 
 end
 
