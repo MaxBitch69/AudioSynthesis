@@ -1,8 +1,8 @@
-function [y, y_test] = test4(x, Fs, nbViolins)
+function [y, y_test] = test5(x, Fs, nbViolins)
 % Time stretching using STFT of signal x, using stretching percentage
 % "stretch".
 %
-% HERE: resample in the loop
+% HERE: Resample before actions on files
 %
 % Pitchs = list of new pitchs for pitch shifting, decimals
 
@@ -37,11 +37,23 @@ output = ola(h, I, 30); % Check reconstruction
 amp = max(output);
 w = w./amp; 
 
-%% Compute Pitchs
+%% Pitchs
+% COmpute pitchs
 pitchs = zeros(nbViolins, 1);
 for k = 1:nbViolins
         % Pick a random number following normal distribution
-        pitchs(k) = normrnd(1, 0.1); % 1% of pitch modification
+        pitchs(k) = normrnd(1, 0.01); % 1% of pitch modification
+end
+
+% Create signals
+Nw_v = zeros(nbViolins, 1);
+I_v = zeros(nbViolins, 1);
+
+for k = 1:nbViolins
+    [p, q] = rat(pitchs(k)); % Get fraction
+    signals{k} = resample(x, q, p); % New time base vector - p/q, p/q times smaller
+    Nw_v(k) = floor(Nw*q/p);
+    I_v(k) = floor(Nw_v(k)*overlap);
 end
 
 %% Metropolis - Hastings - Compute Time Difference
@@ -50,7 +62,7 @@ for k = 1:nbViolins
     timeDifference(k,:) = MetropolisHastings(mu, sigma, Nt);
 
     % Low-frequency sampling, ie smoothing
-    filt = 1/20*hanning(200); % Hanning filter
+    filt = 1/30*hanning(600); % Hanning filter
     % filt = 1/40*ones(100,1); % simple smoother, corresponding
     timeDifference(k,:) = filter(filt, 1, timeDifference(k,:)); % Smooth on 1s
     
@@ -67,10 +79,11 @@ for k = 1:nbViolins
     amplitudeModulation(k,:) = abs(MetropolisHastings(1, 0.4, Nt)); % Amplitude
 
     % Low-frequency sampling, ie smoothing
-    filt = 1/10*hanning(30); % simple smoother, corresponding to 1s
+    filt = 1/30*hanning(600); % simple smoother, corresponding to 1s
     % filt = 1/20*ones(20,1); % simple smoother / Mean filter, corresponding to 1s
     amplitudeModulation(k,:) = filter(filt, 1, amplitudeModulation(k,:)); % Smooth on 1s
 end
+
 
 %% STFT
 % Initialisation
@@ -86,30 +99,29 @@ for k=2:Nt-20  % Loop on timeframes
     % Display progression
     str = sprintf('Treatment progression: %.1f %%', 100*k/Nt);
     disp(str);
-    
-    %%% ANALYSIS
-    deb = (k-1)*I +1; % Beginning - x(n+kI)
-    fin = deb + Nw -1; % End
-%    tx = x(deb:fin).*w; % Timeframe
-        
+            
     % Treatment on signals
     for h = 1:nbViolins
 
-        % Excerpt and time difference - Before try
-%         deb = floor((k-1)*I*q/p)+1+floor(timeDifference(h, k)*10^-3*Fs);
-        deb1 = deb +floor(timeDifference(h, k)*10^-3*Fs);
-        fin1 = deb1 +Nw -1;
-        tx = x(deb1:fin1).*w;
+        %%% ANALYSIS
+        % Time-base vector
+        %w = hanning(Nw_v(h));
+        deb = (k-1)*I_v(h) +1; % Beginning - x(n+kI)
+        deb = deb + floor(timeDifference(h,k)*10^-3*Fs); % Time difference
+        fin = deb+Nw-1;%deb + Nw_v(h) -1; % End
+        tx = signals{h}(deb:fin).*w; % Timeframe
 
-        % Pitch shift
-        [p, q] = rat(pitchs(h)); % Get fraction
-        ttx = resample(tx, q, p); % New time base vector - p/q, p/q times smaller
-
+%         if h
+%             deb - + floor(timeDifference(h,k)*10^-3*Fs)
+%             deb
+%             fin
+%         end
+%         
         % FFT
-        X = fft(ttx,Nfft); 
+        X = fft(tx,Nfft); 
 
         % Time stretching
-        stretch = p/q;%(Nw+floor(timeDifference(h, k)*10^-3*Fs))/length(ttx); for when synthesis window is after deb = deb + TD
+        stretch = pitchs(h);%(Nw+floor(timeDifference(h, k)*10^-3*Fs))/length(ttx);%p/q; %Nw/length(ttx); % p/q
         diff_phase = (angle(X) - former_phase(:,h)) - puls;
         diff_phase = mod(diff_phase + pi,-2*pi) + pi;
         diff_phase = (diff_phase + puls) * stretch;
@@ -117,19 +129,19 @@ for k=2:Nt-20  % Loop on timeframes
         phase(:,h) = phase(:,h) + diff_phase;
         Y = abs(X).*exp(1i*phase(:,h));
         former_phase(:,h) = angle(X);
-        
+                
         %%% SYNTHESIS
-%         % Time Difference
-%         deb1 = deb + floor(timeDifference(h, k)*10^-3*Fs);
-%         fin1 = deb1 + Nw -1; % fin de trame
+        % Time Difference
+        deb = (k-1)*I+1;
+        fin = deb + Nw -1; % fin de trame
 
         % Reconstruction
         ys = real(ifft(Y, 'symmetric')); % TFD inverse
         ys = ys.*ws; % pondération par la fenêtre de synthèse
         
         % Amplitude modulation
-        factorAmp = amplitudeModulation(h, k)/sum(amplitudeModulation(:,k)); % Normalisation
-        ys = factorAmp.*ys;
+        %factorAmp = amplitudeModulation(h, k)/sum(amplitudeModulation(:,k)); % Normalisation
+        %ys = factorAmp.*ys;
         
         y_test(deb:fin, h) = y_test(deb:fin, h) + ys; % Each signal - y_test: stereo 
                                                       % if 2 pitchs: soundsc(y_test, Fs)
