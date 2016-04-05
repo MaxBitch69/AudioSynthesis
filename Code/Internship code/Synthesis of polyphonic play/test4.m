@@ -41,7 +41,7 @@ w = w./amp;
 pitchs = zeros(nbViolins, 1);
 for k = 1:nbViolins
         % Pick a random number following normal distribution
-        pitchs(k) = normrnd(1, 0.1); % 1% of pitch modification
+        pitchs(k) = normrnd(1, 0.01); % 1% of pitch modification
 end
 
 %% Metropolis - Hastings - Compute Time Difference
@@ -50,7 +50,7 @@ for k = 1:nbViolins
     timeDifference(k,:) = MetropolisHastings(mu, sigma, Nt);
 
     % Low-frequency sampling, ie smoothing
-    filt = 1/20*hanning(200); % Hanning filter
+    filt = 1/40*hanning(2500); % Hanning filter
     % filt = 1/40*ones(100,1); % simple smoother, corresponding
     timeDifference(k,:) = filter(filt, 1, timeDifference(k,:)); % Smooth on 1s
     
@@ -90,16 +90,16 @@ for k=2:Nt-20  % Loop on timeframes
     %%% ANALYSIS
     deb = (k-1)*I +1; % Beginning - x(n+kI)
     fin = deb + Nw -1; % End
-%    tx = x(deb:fin).*w; % Timeframe
+    tx = x(deb:fin).*w; % Timeframe
         
     % Treatment on signals
     for h = 1:nbViolins
 
-        % Excerpt and time difference - Before try
-%         deb = floor((k-1)*I*q/p)+1+floor(timeDifference(h, k)*10^-3*Fs);
-        deb1 = deb +floor(timeDifference(h, k)*10^-3*Fs);
-        fin1 = deb1 +Nw -1;
-        tx = x(deb1:fin1).*w;
+        % Excerpt and time difference - TD Before
+%       deb = floor((k-1)*I*q/p)+1+floor(timeDifference(h, k)*10^-3*Fs);
+       deb1 = deb +floor(timeDifference(h, k)*10^-3*Fs);
+       fin1 = deb1 +Nw -1;
+       tx = x(deb1:fin1).*w;
 
         % Pitch shift
         [p, q] = rat(pitchs(h)); % Get fraction
@@ -107,21 +107,21 @@ for k=2:Nt-20  % Loop on timeframes
 
         % FFT
         X = fft(ttx,Nfft); 
-
-        % Time stretching
-        stretch = p/q;%(Nw+floor(timeDifference(h, k)*10^-3*Fs))/length(ttx); for when synthesis window is after deb = deb + TD
-        diff_phase = (angle(X) - former_phase(:,h)) - puls;
-        diff_phase = mod(diff_phase + pi,-2*pi) + pi;
-        diff_phase = (diff_phase + puls) * stretch;
-
-        phase(:,h) = phase(:,h) + diff_phase;
-        Y = abs(X).*exp(1i*phase(:,h));
-        former_phase(:,h) = angle(X);
-        
+        Y = X;
+%         % Time stretching
+%         stretch = p/q;%(Nw+floor(timeDifference(h, k)*10^-3*Fs))/length(ttx); for when synthesis window is after deb = deb + TD
+%         diff_phase = (angle(X) - former_phase(:,h)) - puls;
+%         diff_phase = mod(diff_phase + pi,-2*pi) + pi;
+%         diff_phase = (diff_phase + puls) * stretch;
+% 
+%         phase(:,h) = phase(:,h) + diff_phase;
+%         Y = abs(X).*exp(1i*phase(:,h));
+%         former_phase(:,h) = angle(X);
+%         
         %%% SYNTHESIS
-%         % Time Difference
-%         deb1 = deb + floor(timeDifference(h, k)*10^-3*Fs);
-%         fin1 = deb1 + Nw -1; % fin de trame
+        % Time Difference - for TD After
+        deb1 = deb + floor(timeDifference(h, k)*10^-3*Fs);
+        fin1 = deb1 + Nw -1; % fin de trame
 
         % Reconstruction
         ys = real(ifft(Y, 'symmetric')); % TFD inverse
@@ -130,7 +130,13 @@ for k=2:Nt-20  % Loop on timeframes
         % Amplitude modulation
         factorAmp = amplitudeModulation(h, k)/sum(amplitudeModulation(:,k)); % Normalisation
         ys = factorAmp.*ys;
-        
+
+%         % Syntesis if TD After
+%         y_test(deb1:fin1, h) = y_test(deb1:fin1, h) + ys; % Each signal - y_test: stereo 
+%                                                       % if 2 pitchs: soundsc(y_test, Fs)
+%         y(deb1:fin1)=y(deb1:fin1)+ys; % overlap add - sum of signals
+
+       % Synthesis if TD Before
         y_test(deb:fin, h) = y_test(deb:fin, h) + ys; % Each signal - y_test: stereo 
                                                       % if 2 pitchs: soundsc(y_test, Fs)
         y(deb:fin)=y(deb:fin)+ys; % overlap add - sum of signals

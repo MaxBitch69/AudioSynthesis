@@ -39,7 +39,7 @@ strf = 'Algorithm progression:';
 for h = 1:nbViolins
 
     % Compute pitch with a random number following normal distribution
-    pitch = normrnd(1, 0.02); % 1% of pitch modification
+    pitch = normrnd(1, 0.01); % 1% of pitch modification
 
     % resample
     [p, q] = rat(pitch); % Get fraction
@@ -57,7 +57,8 @@ for h = 1:nbViolins
                                                     % standard deviation = 45 ms
 
     % Low-frequency sampling, ie smoothing
-    filt = 1/50*hanning(3000); % Hanning filter
+    filt = 1/40*hanning(2500); % Hanning filter - Violin
+    %filt = 1/20*hanning(900); % Hanning filter - Trumpet
     timeDifference = filter(filt, 1, timeDifference); % Smooth on 1s
 
 %     % Time Difference for test
@@ -70,7 +71,11 @@ for h = 1:nbViolins
                                                                % = 40%
                                                               
     % Low-frequency sampling, ie smoothing
-    filt = 1/30*hanning(600); % simple smoother, corresponding to 1s
+    % 5hz low frequency in the paper. Here, 1 pt is I, ie floor(Nw*0.25) pts
+    % We want 5 Hz, ie Fs/N (frequence coupure pour hanning(N)), so N =
+    % Fs/5 pts --> Fs/(5*I)
+    len = floor(Fs/(5*I));
+    filt = 1/len*hanning(len); % simple smoother, corresponding to 1s
     amplitudeModulation = filter(filt, 1, amplitudeModulation); % Smooth on 1s
 
     % Display results
