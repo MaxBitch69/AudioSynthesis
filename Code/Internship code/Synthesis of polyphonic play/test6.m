@@ -57,10 +57,13 @@ for h = 1:nbViolins
                                                     % standard deviation = 45 ms
 
     % Low-frequency sampling, ie smoothing
-    filt = 1/40*hanning(2500); % Hanning filter - Violin
+    filt = 1/30*hanning(1500); % Hanning filter - Violin
     %filt = 1/20*hanning(900); % Hanning filter - Trumpet
     timeDifference = filter(filt, 1, timeDifference); % Smooth on 1s
 
+    % Add offset or start to 0
+    timeDifference = timeDifference + 30*randn(1);
+    
 %     % Time Difference for test
 %     timeDifference = randn(1)*200*ones(1,Nt);
     
@@ -106,6 +109,9 @@ for h = 1:nbViolins
         % Time-base vector
         deb = (k-1)*I +1; % Beginning - x(n+kI)
         deb = deb + floor(timeDifference(k)*10^-3*Fs); % Time difference
+        if deb <0
+            deb = 1;
+        end
         fin = deb + Nw -1;
         tx = signal(deb:fin).*w; % Timeframe
 
@@ -116,7 +122,8 @@ for h = 1:nbViolins
         stretch = pitch;
         diff_phase = (angle(X) - former_phase) - puls;
         diff_phase = mod(diff_phase + pi,-2*pi) + pi;
-        diff_phase = (diff_phase + puls) * (stretch+((timeDifference(k)-timeDifference(k-1))*10^-3*Fs)/I);
+        %diff_phase = (diff_phase + puls) * stretch;
+        diff_phase = (diff_phase + puls) * stretch * I/(I+(timeDifference(k)-timeDifference(k-1))*10^-3*Fs);
 
         phase = phase + diff_phase;
         Y = abs(X).*exp(1i*phase);
