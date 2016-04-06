@@ -150,4 +150,34 @@ for h = 1:nbViolins
     
     strf = sprintf('%s\n%s',strf, str);
 end
+
+% %% Amplitude modulation, using Metropolis-Hastings
+% N = length(x);
+% ampMod = zeros(nbViolins, N);
+% 
+% for h = 1:nbViolins
+%     ampMod(h,:) = MetropolisHastings(1, 0.1, N); % mean = 1
+%                                                   % standard
+%                                                   % deviation
+%                                                   % = 10%
+%                                                               
+%     % Low-frequency sampling, ie smoothing
+%     % 5hz low frequency in the paper. Here, 1 pt is I, ie floor(Nw*0.25) pts
+%     % We want 5 Hz, ie Fs/N (frequence coupure pour hanning(N)), so N =
+%     % Fs/5 pts --> Fs/(5*I)
+%     len = floor(Fs/5);
+%     filt = 1/len*hanning(len); % simple smoother, corresponding to 1s
+%     ampMod(h,:) = filter(filt, 1, ampMod(h,:)); % Smooth on 1s
+% end
+% 
+% % Scale to 1
+% for k = 1:N
+%     ampMod(:,k) = ampMod(:,k)/sum(ampMod(:,k));
+% end
+% 
+% % Amplitude modulation
+% for h = 1:nbViolins
+%    y_test(:, h) = y_test(:, h).*ampMod(h,:)'; % Each signal - y_test: stereo 
+%    y = y+y_test(:, h);                                                   % if 2 pitchs: soundsc(y_test, Fs)    
+% end
 end
