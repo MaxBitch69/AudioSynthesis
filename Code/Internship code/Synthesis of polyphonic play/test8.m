@@ -1,8 +1,10 @@
-function [y, y_test] = test6(x, Fs, nbViolins)
+function [y, y_test] = test8(x, Fs, nbViolins)
 % Time stretching using STFT of signal x, using stretching percentage
 % "stretch".
 %
 % Work on each channel, independantly
+% Same as Test 6, but instead of doing stretch directly in synthesis marks
+% keeps the same marks as for analysis, and resample after. Works as well !
 %
 % Pitchs = list of new pitchs for pitch shifting, decimals
 
@@ -86,6 +88,8 @@ for h = 1:nbViolins
 
 
     %% STFT    
+    y1 = zeros(N, 1);
+
     % Initialisation
     puls = 2*pi*I*(0:Nfft-1)'/Nfft; % Canals' pulsations
     Xtilde_m = zeros(Nfft, Nt); % Matrix containing fft
@@ -116,18 +120,13 @@ for h = 1:nbViolins
         stretch = pitch;
         diff_phase = (angle(X) - former_phase) - puls;
         diff_phase = mod(diff_phase + pi,-2*pi) + pi;
-        diff_phase = (diff_phase + puls) * (stretch+((timeDifference(k)-timeDifference(k-1))*10^-3*Fs)/I);
+        diff_phase = (diff_phase + puls) * stretch;
 
         phase = phase + diff_phase;
         Y = abs(X).*exp(1i*phase);
         former_phase = angle(X);
                 
         %%% SYNTHESIS
-        % Time stretching
-        R = floor(stretch*I);
-        deb = (k-1)*R+1;
-        fin = deb + Nw -1; % fin de trame
-
         % Reconstruction
         ys = real(ifft(Y, 'symmetric')); % TFD inverse
         ys = ys.*ws; % pondération par la fenêtre de synthèse
@@ -135,11 +134,17 @@ for h = 1:nbViolins
         % Amplitude modulation
         %factorAmp = amplitudeModulation(h, k)/sum(amplitudeModulation(:,k)); % Normalisation
         %ys = factorAmp.*ys;
-        
-        y_test(deb:fin, h) = y_test(deb:fin, h) + ys; % Each signal - y_test: stereo 
-                                                      % if 2 pitchs: soundsc(y_test, Fs)
-        y(deb:fin)=y(deb:fin)+ys; % overlap add - sum of signals
+
+        % Time stretching
+        deb = (k-1)*I+1;
+        fin = deb + Nw -1; % fin de trame
+    
+        y1(deb:fin) = y1(deb:fin)+ys; % overlap add - sum of signals
     end
+    
+    y2 = resample(y1, p, q);
+    y_test(:,h) = y2(1:length(y_test(:,h)));
+    y = y + y_test(:,h); % Each signal - y_test: stereo 
     
     strf = sprintf('%s\n%s',strf, str);
 end
