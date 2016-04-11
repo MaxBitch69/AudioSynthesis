@@ -57,12 +57,12 @@ for h = 1:nbViolins
                                                     % standard deviation = 45 ms
 
     % Low-frequency sampling, ie smoothing
-    filt = 1/30*hanning(1500); % Hanning filter - Violin
+    filt = 1/60*hanning(1500); %1/30*hanning(1500); % Hanning filter - Violin
     %filt = 1/20*hanning(900); % Hanning filter - Trumpet
     timeDifference = filter(filt, 1, timeDifference); % Smooth on 1s
 
     % Add offset or start to 0
-    timeDifference = timeDifference + 30*randn(1);
+    timeDifference = timeDifference + normrnd(0, 45);%30*randn(1);
     
 %     % Time Difference for test
 %     timeDifference = randn(1)*200*ones(1,Nt);
@@ -98,7 +98,7 @@ for h = 1:nbViolins
     phase = angle(Xtilde_m(:,1));
     former_phase = phase;
 
-    for k=2:Nt-10  % Loop on timeframes
+    for k=2:Nt-20  % Loop on timeframes
         % Display progression
         clc;
         str = sprintf('Violin n°%d, treatment progression: %.1f %%', h, 100*k/Nt);
@@ -119,13 +119,22 @@ for h = 1:nbViolins
         X = fft(tx,Nfft); 
 
         % Time stretching
-        stretch = pitch;
-        diff_phase = (angle(X) - former_phase) - puls;
-        diff_phase = mod(diff_phase + pi,-2*pi) + pi;
-        %diff_phase = (diff_phase + puls) * stretch;
-        diff_phase = (diff_phase + puls) * stretch * I/(I+(timeDifference(k)-timeDifference(k-1))*10^-3*Fs);
+%         stretch = pitch;
+%         diff_phase = (angle(X) - former_phase) - puls;
+%         diff_phase = mod(diff_phase + pi,-2*pi) + pi;
+%         %diff_phase = (diff_phase + puls) * stretch;
+%         diff_phase = (diff_phase + puls) * stretch * I/(I+(timeDifference(k)-timeDifference(k-1))*10^-3*Fs);
 
-        phase = phase + diff_phase;
+        % With former method
+        stretch = pitch;
+        diff_phase = (angle(X) - former_phase); % Phase difference
+        diff_time = I + floor(timeDifference(k)*10^-3*Fs)-floor(timeDifference(k-1)*10^-3*Fs); % Time interval
+        diff_phase = diff_phase - 2*pi*diff_time*(0:Nfft-1)'/Nfft; % Remove analysis window phase
+        diff_phase = mod(diff_phase + pi,-2*pi) + pi;
+        freq_inst = diff_phase/diff_time+2*pi*(0:Nfft-1)'/Nfft; % Freq instant
+        diff_phase = freq_inst*stretch*I;
+        
+        phase = phase + diff_phase; 
         Y = abs(X).*exp(1i*phase);
         former_phase = angle(X);
                 
