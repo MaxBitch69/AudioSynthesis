@@ -4,7 +4,7 @@ function [periodMarks, pitchs, notes] = analysePitch(x, Fs)
 
 %% Parameters
 N = length(x);
-analysisLength = 25*10^-3*Fs; % analysis frame = 25ms
+analysisLength = 10*10^-3*Fs; % analysis frame = 25ms
 
 periodMarks(1) = 1; % Analysis marks, begin to 1st sample
 pitchs(1) = 10*10^-3*Fs; % pitchs found
@@ -27,7 +27,7 @@ while (periodMarks(n) + 2.5*analysisLength) < N % Until end of file
         q = q+1;
         notes(q) = periodMarks(n); % Get onset
     end
-
+    
     % Display progression
 %     clc;
     str = sprintf('Treatment progression: %.1f %%', 100*(periodMarks(n) + 2.5*analysisLength)/N);
@@ -36,6 +36,6 @@ end
     
 %% Display results
 figure();
-plot(pitchs);
+plot(periodMarks/Fs, pitchs);
 
 end

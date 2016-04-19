@@ -39,7 +39,7 @@ strf = 'Algorithm progression:';
 for h = 1:nbViolins
 
     % Compute pitch with a random number following normal distribution
-    pitch = normrnd(1, 0.005); % 1% of pitch modification
+    pitch = normrnd(1, 0.005); % 0.5% of pitch modification
 
     % resample
     [p, q] = rat(pitch); % Get fraction
@@ -53,16 +53,23 @@ for h = 1:nbViolins
     amplitudeModulation = zeros(1, Nt); % Amplitude modulation
 
     % Time Difference - Metropolis-Hastings sampling
-    timeDifference = MetropolisHastings(0, 45, Nt); % mean = 0 ms
+    timeDifferenceTemp = MetropolisHastings(0, 45, 2*Nt); % mean = 0 ms
                                                     % standard deviation = 45 ms
 
+    %timeDifference = MetropolisHastings(0, 45, Nt); % mean = 0 ms
+    
     % Low-frequency sampling, ie smoothing
-    filt = 1/60*hanning(1500); %1/30*hanning(1500); % Hanning filter - Violin
+    filt = 1/40*hanning(1500); %1/30*hanning(1500); % Hanning filter - Violin
+    %filt = 1/30*hanning(1000);
+    %filt = 1/10*hanning(floor(Fs/(5*I))); %1/30*hanning(1500); % Hanning filter - Violin
+    
     %filt = 1/20*hanning(900); % Hanning filter - Trumpet
-    timeDifference = filter(filt, 1, timeDifference); % Smooth on 1s
+    timeDifferenceTemp = filter(filt, 1, timeDifferenceTemp); % Smooth on 1s
+    %timeDifference = filter(filt, 1, timeDifference); % Smooth on 1s
 
     % Add offset or start to 0
-    timeDifference = timeDifference + normrnd(0, 45);%30*randn(1);
+    %timeDifference = timeDifference + normrnd(0, 30);%30*randn(1);
+    timeDifference = timeDifferenceTemp(Nt+1:end); % take last part
     
 %     % Time Difference for test
 %     timeDifference = randn(1)*200*ones(1,Nt);
@@ -150,7 +157,7 @@ for h = 1:nbViolins
         
         % Amplitude modulation
         %factorAmp = amplitudeModulation(h, k)/sum(amplitudeModulation(:,k)); % Normalisation
-        %ys = factorAmp.*ys;
+        %ys = amplitudeModulation(k).*ys;
         
         y_test(deb:fin, h) = y_test(deb:fin, h) + ys; % Each signal - y_test: stereo 
                                                       % if 2 pitchs: soundsc(y_test, Fs)
