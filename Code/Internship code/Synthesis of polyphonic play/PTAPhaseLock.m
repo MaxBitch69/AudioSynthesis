@@ -1,4 +1,4 @@
-function [y, y_test] = PTAPhaseLock(x, Fs, nbViolins)
+function [y, y_test] = PTAPhaseLock(x, Fs, nbViolins, phaselock)
 % Pitch Time Amplitude (PTA) algorithm developped by J. Pätynen
 % With different techniques of phase locking
 
@@ -16,7 +16,7 @@ y = zeros(N, 1); % Synthesised signal
 y_test = zeros(N, nbViolins); % Different channels
 
 % Phase lock technique
-phaselock = 'rigid'; %loose'; % Loose phase lock
+%phaselock = 'scaled'; %loose'; % Loose phase lock
 
 %% Windowing
 w = hanning(Nw); % Analysis window
@@ -58,8 +58,9 @@ for h = 1:nbViolins
     % standard deviation = 45 ms
     
     % Low-frequency sampling, ie smoothing
-    filt = 1/20*hanning(1000); %1/30*hanning(1500); % Hanning filter - Violin
-    
+    % To see well --> filt = 1/2*hanning(1000); %1/30*hanning(1500); % Hanning filter - Violin
+    %filt = 1/2*hanning(1000);
+    filt = 1/30*hanning(1500);
     %filt = 1/10*hanning(floor(Fs/(5*I))); % 5Hz
     
     %filt = 1/20*hanning(900); % Hanning filter - Trumpet
@@ -100,7 +101,17 @@ for h = 1:nbViolins
     puls = 2*pi*I*(0:Nfft-1)'/Nfft; % Canals' pulsations
     Xtilde_m = zeros(Nfft, Nt); % Matrix containing STFT of original signal
     Ytilde_m = zeros(Nfft, Nt); % Matrix containing STFT of synthesised signal
-    Xtilde_m(:,1) = fft(x(1:Nw), Nfft); % 1st fft
+    
+    
+    % MODIF ICI
+    %Xtilde_m(:,1) = fft(x(1:Nw), Nfft); % 1st fft
+    deb = 1 + floor(timeDifference(1)*10^-3*Fs); % Time difference
+    if deb <0
+       deb = 1;
+    end
+    fin = deb + Nw -1;
+
+    Xtilde_m(:,1) = fft(x(deb:fin), Nfft); % 1st fft
     Ytilde_m(:,1) = Xtilde_m(:,1);
     
     % Parameters for time stretching
@@ -175,7 +186,7 @@ for h = 1:nbViolins
         elseif strcmp(phaselock, 'rigid') % Rigid phase lock
 
             % Find peaks
-            [~, locs] = findpeaks(abs(Xtilde_m(:,k)),'MinPeakDistance',5); % Peaks spaced by 4
+            [~, locs] = findpeaks(abs(Xtilde_m(:,k)),'MinPeakDistance',3); % Peaks spaced by 4
             
             if isempty(locs)
                 stretch = pitch;
@@ -230,9 +241,10 @@ for h = 1:nbViolins
             end
         elseif strcmp(phaselock, 'scaled')
             % Find peaks
-            [~, locs] = findpeaks(abs(Xtilde_m(:,k)),'MinPeakDistance',5); % Peaks spaced by 4
+            [~, locs] = findpeaks(abs(Xtilde_m(:,k)),'MinPeakDistance',3); % Peaks spaced by 4
             
             if isempty(locs)
+                %strf = sprintf('%s\nEMPTY ! at %.1f %%', strf, 100*k/Nt);
                 stretch = pitch;
                 diff_phase = (angle(Xtilde_m(:,k)) - former_phase); % Phase difference
                 diff_time = I + floor(timeDifference(k)*10^-3*Fs)-floor(timeDifference(k-1)*10^-3*Fs); % Time interval
@@ -304,7 +316,9 @@ for h = 1:nbViolins
                     diff_phase = freq_inst*stretch*I;
                 
                     phase(locs) = phase(previouspeak) + diff_phase;
-                
+
+                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% BETA
+                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SCALED
                     min_inf = 1;
                     l = 1;
                     beta = 2/3+pitch/3; % when = 1: unity scale                
@@ -342,6 +356,39 @@ for h = 1:nbViolins
                     phase = angle(Ytilde_m(:,k)); % Update phase for the other case
                     emptyPeaks = 0;
                     formerlocs = locs;
+                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    
+%                     % Teta and phasor Z
+%                     teta = phase(locs) - angle(Xtilde_m(locs,k));
+%                     Z = exp(1i.*teta);
+%                 
+%                     min_inf = 1;
+%                     l = 1;
+%                     min_sups = zeros(length(locs), 1); % Vector of min_sup
+%                     
+%                     while min_inf < locs(length(locs)-1) % Last peak
+%                         % Define area for peak l
+%                         [~, min_sup] = min(abs(Xtilde_m(locs(l):locs(l+1),k)));
+%                         min_sup = min_sup + locs(l);
+%                         min_sups(l) = min_sup;
+%                         
+%                         % Rigid phase lock in the area
+%                         Ytilde_m(min_inf:min_sup,k) = Z(l).*Xtilde_m(min_inf:min_sup,k);
+% 
+%                         % Increment variables
+%                         min_inf = min_sup;
+%                         l = l+1;
+%                     end
+%                     min_sup = length(Xtilde_m(:,k));
+%                     Ytilde_m(min_inf:min_sup,k) = Z(l).*Xtilde_m(min_inf:min_sup,k);
+%                     min_sups(l) = min_sup;
+%                     
+%                     phase = angle(Ytilde_m(:,k)); % Update phase for the other case
+%                     emptyPeaks = 0;
+%                     formerlocs = locs;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 end
                 end
 
